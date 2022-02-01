@@ -8,6 +8,9 @@ import session from 'express-session'
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
 import User from './User'
+import { UserInterface } from './interfaces/UserInterface'
+
+const LocalStrategy = passportLocal.Strategy
 
 mongoose.connect("mongodb://localhost:27017/passport-ts", (err: Error) => {
     if (err) throw err
@@ -32,6 +35,39 @@ app.use(passport.initialize())
 app.use(passport.session())
 
 
+//Passport
+passport.use(new LocalStrategy((username: string, password: string, done) => {
+    User.findOne({ username: username }, (err: Error, user: any) => {
+        if (err) throw err;
+        if (!user) return done(null, false);
+        bcrypt.compare(password, user.password, (err, result: boolean) => {
+            if (err) throw err;
+            if (result === true) {
+                return done(null, user);
+            } else {
+                return done(null, false);
+            }
+        });
+    });
+})
+);
+
+passport.serializeUser((user: any, cb) => {
+    cb(null, user._id);
+});
+
+passport.deserializeUser((id: string, cb) => {
+    User.findOne({ _id: id }, (err: Error, user: any) => {
+        const userInformation = {
+            username: user.username,
+            isAdmin: user.isAdmin,
+            id: user._id
+        };
+        cb(err, userInformation);
+    });
+});
+
+
 //App Routes
 app.post('/register', async (req, res) => {
 
@@ -44,7 +80,7 @@ app.post('/register', async (req, res) => {
     }
 
     //Check if user exists
-    User.findOne({ username }, async (err: Error, doc: Document) => {
+    User.findOne({ username }, async (err: Error, doc: UserInterface) => {
         if (err) throw err
         if (doc) res.send("User Already Exists")
         if (!doc) {
