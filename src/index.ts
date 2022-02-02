@@ -76,6 +76,7 @@ const isAdminMiddleware = async (req: Request, res: Response, next: NextFunction
             if (doc?.isAdmin) {
                 next()
             }
+            res.send("Unauthorized")
         })
     }
     res.send("fail")
@@ -122,7 +123,7 @@ app.get("/logout", (req, res) => {
     res.send("Success")
 })
 
-app.post("/deleteUser", async (req, res) => {
+app.post("/deleteUser", isAdminMiddleware, async (req, res) => {
     if (req.body.id) {
         const deletedUser = await User.findByIdAndDelete(req.body.id)
         if (deletedUser) res.send("Success")
@@ -130,7 +131,7 @@ app.post("/deleteUser", async (req, res) => {
 
 })
 
-app.get("/getAllUsers", async (req, res) => {
+app.get("/getAllUsers", isAdminMiddleware, async (req, res) => {
     const data = await User.find({})
 
     if (data) res.send(data)
