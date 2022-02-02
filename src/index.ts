@@ -1,5 +1,5 @@
 import mongoose, { Document, Error } from 'mongoose'
-import express from 'express'
+import express, { NextFunction, Request, Response } from 'express'
 import cors from 'cors'
 import passport from 'passport'
 import passportLocal from 'passport-local'
@@ -67,6 +67,20 @@ passport.deserializeUser((id: string, cb) => {
     });
 });
 
+//Defining Middleware
+const isAdminMiddleware = async (req: Request, res: Response, next: NextFunction) => {
+    const { user }: any = req
+    if (user) {
+        const foundUser = await User.findOne({ username: user.username }, async (err: Error, doc: UserInterface) => {
+            if (err) throw err
+            if (doc?.isAdmin) {
+                next()
+            }
+        })
+    }
+    res.send("fail")
+}
+
 
 //App Routes
 app.post('/register', async (req, res) => {
@@ -96,7 +110,7 @@ app.post('/register', async (req, res) => {
 })
 
 app.post("/login", passport.authenticate('local'), (req, res) => {
-    res.send("Seccessfully Authenticated")
+    res.send("Success")
 })
 
 app.get("/user", (req, res) => {
@@ -106,6 +120,20 @@ app.get("/user", (req, res) => {
 app.get("/logout", (req, res) => {
     req.logOut()
     res.send("Success")
+})
+
+app.post("/deleteUser", async (req, res) => {
+    if (req.body.id) {
+        const deletedUser = await User.findByIdAndDelete(req.body.id)
+        if (deletedUser) res.send("Success")
+    }
+
+})
+
+app.get("/getAllUsers", async (req, res) => {
+    const data = await User.find({})
+
+    if (data) res.send(data)
 })
 
 app.listen(8000, () => {
