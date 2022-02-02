@@ -136,8 +136,17 @@ app.post("/deleteUser", isAdminMiddleware, async (req, res) => {
 
 app.get("/getAllUsers", isAdminMiddleware, async (req, res) => {
     const data = await User.find({})
+    const filteredUsers: any = []
+    data.forEach((item: any) => {
+        const userInfo = {
+            id: item._id,
+            username: item.username,
+            isAdmin: item.isAdmin,
+        }
+        filteredUsers.push(userInfo)
+    })
 
-    if (data) res.send(data)
+    res.send(filteredUsers)
 })
 
 app.listen(8000, () => {
