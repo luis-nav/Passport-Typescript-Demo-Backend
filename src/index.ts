@@ -76,10 +76,13 @@ const isAdminMiddleware = async (req: Request, res: Response, next: NextFunction
             if (doc?.isAdmin) {
                 next()
             }
-            res.send("Unauthorized")
+            else {
+                res.send("Unauthorized")
+            }
         })
+    } else {
+        res.send("fail")
     }
-    res.send("fail")
 }
 
 
