@@ -8,11 +8,13 @@ import session from 'express-session'
 import bcrypt from 'bcrypt'
 import dotenv from 'dotenv'
 import User from './User'
-import { UserInterface } from './interfaces/UserInterface'
+import { DatabaseUserInterface, UserInterface } from './interfaces/UserInterface'
 
 const LocalStrategy = passportLocal.Strategy
 
-mongoose.connect("mongodb://localhost:27017/passport-ts", (err: Error) => {
+dotenv.config()
+
+mongoose.connect(process.env.DB_URL!, (err: Error) => {
     if (err) throw err
     console.log('Connected to Mongo')
 })
@@ -37,7 +39,7 @@ app.use(passport.session())
 
 //Passport
 passport.use(new LocalStrategy((username: string, password: string, done) => {
-    User.findOne({ username: username }, (err: Error, user: any) => {
+    User.findOne({ username: username }, (err: Error, user: DatabaseUserInterface) => {
         if (err) throw err;
         if (!user) return done(null, false);
         bcrypt.compare(password, user.password, (err, result: boolean) => {
@@ -52,13 +54,13 @@ passport.use(new LocalStrategy((username: string, password: string, done) => {
 })
 );
 
-passport.serializeUser((user: any, cb) => {
+passport.serializeUser((user: DatabaseUserInterface, cb) => {
     cb(null, user._id);
 });
 
 passport.deserializeUser((id: string, cb) => {
-    User.findOne({ _id: id }, (err: Error, user: any) => {
-        const userInformation = {
+    User.findOne({ _id: id }, (err: Error, user: DatabaseUserInterface) => {
+        const userInformation: UserInterface = {
             username: user.username,
             isAdmin: user.isAdmin,
             id: user._id
@@ -71,7 +73,7 @@ passport.deserializeUser((id: string, cb) => {
 const isAdminMiddleware = async (req: Request, res: Response, next: NextFunction) => {
     const { user }: any = req
     if (user) {
-        const foundUser = await User.findOne({ username: user.username }, async (err: Error, doc: UserInterface) => {
+        const foundUser = await User.findOne({ username: user.username }, async (err: Error, doc: DatabaseUserInterface) => {
             if (err) throw err
             if (doc?.isAdmin) {
                 next()
@@ -98,7 +100,7 @@ app.post('/register', async (req, res) => {
     }
 
     //Check if user exists
-    User.findOne({ username }, async (err: Error, doc: UserInterface) => {
+    User.findOne({ username }, async (err: Error, doc: DatabaseUserInterface) => {
         if (err) throw err
         if (doc) res.send("User Already Exists")
         if (!doc) {
@@ -113,7 +115,7 @@ app.post('/register', async (req, res) => {
     })
 })
 
-app.post("/login", passport.authenticate('local'), (req, res) => {
+app.post("/login", passport.authenticate('local'), (_req, res) => {
     res.send("Success")
 })
 
@@ -134,10 +136,10 @@ app.post("/deleteUser", isAdminMiddleware, async (req, res) => {
 
 })
 
-app.get("/getAllUsers", isAdminMiddleware, async (req, res) => {
-    const data = await User.find({})
-    const filteredUsers: any = []
-    data.forEach((item: any) => {
+app.get("/getAllUsers", isAdminMiddleware, async (_req, res) => {
+    const data: DatabaseUserInterface[] = await User.find({})
+    const filteredUsers: UserInterface[] = []
+    data.forEach((item: DatabaseUserInterface) => {
         const userInfo = {
             id: item._id,
             username: item.username,
