@@ -103,6 +103,11 @@ app.get("/user", (req, res) => {
     res.send(req.user)
 })
 
+app.get("/logout", (req, res) => {
+    req.logOut()
+    res.send("Success")
+})
+
 app.listen(8000, () => {
     console.log(`Serving on port ${8000}`)
 })
